@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    user: "0:0"
+    command: ["--config", "/config/settings.json"]
+    volumes:
+      - /:/srv
+      - /docker/filebrowser/data:/database
+      - /docker/filebrowser/config:/config
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - proxy
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == rocky9
+          #- node.role == worker
+    labels:
+      caddy: "fb.argok.co.kr"
+      caddy.reverse_proxy: "{{upstreams 80}}"
+
+networks:
+  proxy:
+    external: true

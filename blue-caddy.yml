@@ -1,0 +1,52 @@
+version: "3.8"
+
+networks:
+  proxy:
+    external: true
+
+secrets:
+  cf_all_token:
+    external: true
+
+services:
+  caddy:
+    image: caddybuilds/caddy-cloudflare:latest
+    networks:
+      - proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    secrets:
+      - cf_all_token
+    environment:
+      # docker-proxy 필수
+      - CADDY_DOCKER_MODE=swarm
+      - CADDY_DOCKER_NETWORK=proxy
+      - CADDY_DOCKER_DEFAULT_TLS_DNS=cloudflare
+
+      # Cloudflare DNS-01
+      #- CF_API_TOKEN_FILE=/run/secrets/cf_all_token
+      - CLOUDFLARE_API_TOKEN_FILE=/run/secrets/cf_all_token
+
+      # 안전
+      #- CADDY_ADMIN=off
+      - TZ=Asia/Seoul
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./caddy-entry.sh:/usr/local/bin/caddy-entry.sh:ro
+      - /docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    entrypoint: ["/usr/local/bin/caddy-entry.sh"]
+    deploy:
+      placement:
+        constraints:
+          #- node.role == manager
+          - node.hostname == blue
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  caddy_data:
+  caddy_config:
+

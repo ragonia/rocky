@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  beszel:
+    image: 'henrygd/beszel'
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - "node.role == manager"
+    ports:
+      - "8090:8090"
+    volumes:
+      - beszel_data:/beszel_data
+      
+  beszel-agent:
+    image: "henrygd/beszel-agent"
+    deploy:
+      mode: global  # 모든 노드(매니저 + 워커)에서 실행
+      restart_policy:
+        condition: on-failure
+    network_mode: "host"  # 네트워크 모드 유지
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # 추가 디스크/파티션 모니터링 (필요하면 활성화)
+      # - /mnt/disk/.beszel:/extra-filesystems/sda1:ro
+    environment:
+      LISTEN: "45877"
+      KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJE2/eFEcplpOcEcSm+KYQdBfOE2r+EQGsUpPOcFzwzi"
+
+volumes:
+  beszel_data:
+    

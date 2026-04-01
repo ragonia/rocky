@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  droppy:
+    image: silverwind/droppy
+    volumes:
+      - type: bind
+        source: /mnt/ssh_samba #매우 매우 중요
+        target: /files #매우중요
+        read_only: false
+    environment:
+      - PUID=911
+      - PGID=911        
+    networks:
+      - proxy
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == gram
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=proxy"
+        - "traefik.http.services.droppy.loadbalancer.server.port=8989"
+        - "traefik.http.routers.droppy.rule=Host(`file.facil.co.kr`)"
+        - "traefik.http.routers.droppy.entrypoints=websecure"
+        - "traefik.http.routers.droppy.tls.certResolver=cloudflare"
+        - "traefik.http.routers.droppy-http.rule=Host(`file.facil.co.kr`)"
+        - "traefik.http.routers.droppy-http.entrypoints=web"
+        - "traefik.http.routers.droppy-http.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+
+networks:
+  proxy:
+    external: true
+#droppy

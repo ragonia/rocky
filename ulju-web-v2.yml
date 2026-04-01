@@ -1,0 +1,30 @@
+version: "3.8"
+
+networks:
+  proxy:
+    external: true
+
+services:
+  ulju-web:
+    environment:
+      - TZ=Asia/Seoul
+    image: ciong/ulju-web-v2:latest
+    networks:
+      - proxy
+    volumes:
+      - /mnt/main/docker/ulju-web:/data
+      - /docker/ulju_web/app:/app/app
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.hostname == blue
+      labels:
+        - "caddy=ulju.facil.co.kr"
+        - "caddy.route.0.basicauth=/* uljuadmin S3curePass!"
+        - "caddy.route.1.reverse_proxy={{upstreams 8000}}"
+        - "caddy.import=tls_cf"
+
+

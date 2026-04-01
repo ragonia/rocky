@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  ghost:
+    image: ghost:latest
+    environment:
+      - url=https://www.argok.co.kr
+      - database__client=mysql
+      - database__connection__host=mariadb_primary
+      - database__connection__port=3306
+      - database__connection__user=ragoni
+      - database__connection__database=argok
+      - TZ=Asia/Seoul
+    secrets:
+      - maria_password
+    command: >
+      sh -lc '
+        export database__connection__password="$$(cat /run/secrets/maria_password)";
+        cp /custom/config.production.json /var/lib/ghost/config.production.json;
+        docker-entrypoint.sh node current/index.js
+      '
+    volumes:
+      - /docker/argok/content:/var/lib/ghost/content
+      - /docker/argok/config.production.json:/custom/config.production.json        
+    networks:
+      - proxy
+      - dbnet
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+    labels:
+      caddy: "www.argok.co.kr"
+      caddy.reverse_proxy: "{{upstreams 2368}}"
+
+secrets:
+  maria_password:
+    external: true
+
+networks:
+  proxy:
+    external: true
+  dbnet:
+    external: true

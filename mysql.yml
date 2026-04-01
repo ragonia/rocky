@@ -1,0 +1,80 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    #ports:
+    #  - "3306:3306"
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: ragoni
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets:
+      - mysql_password
+      - mysql_root_password
+    volumes:
+      - /DB/mysql:/var/lib/mysql
+    networks:
+      - dbnet
+    deploy:
+      placement:
+        constraints:
+          #- node.role == worker
+          #- node.hostname == pubuntu
+          - node.hostname == gram
+      endpoint_mode: dnsrr
+      restart_policy:
+       condition: any
+       delay: 5s
+
+    healthcheck:
+     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+     interval: 10s
+     timeout: 5s
+     retries: 5
+
+  mysql_bak:
+    image: mysql:8.0
+    #ports:
+    #  - "3306:3306"
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: ragoni
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets:
+      - mysql_password
+      - mysql_root_password
+    volumes:
+      - /DB/mysql:/var/lib/mysql
+    networks:
+      - dbnet
+    deploy:
+      placement:
+        constraints:
+          #- node.role == worker
+          - node.hostname == pubuntu
+          #- node.hostname == gram
+      endpoint_mode: dnsrr
+      restart_policy:
+       condition: any
+       delay: 5s
+
+    healthcheck:
+     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+     interval: 10s
+     timeout: 5s
+     retries: 5
+
+networks:
+  proxy:
+    external: true
+  dbnet:
+    external: true
+
+secrets:
+  mysql_password:
+    external: true
+  mysql_root_password:
+    external: true

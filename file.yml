@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  filebrowser:
+    #    image: filebrowser/filebrowser:v2.23.0
+    image: filebrowser/filebrowser:latest
+    user: "0:0"
+    command: ["--config", "/config/settings.json"]
+
+    volumes:
+      - type: bind
+        source: /mnt # 매우중요
+        target: /srv # 매우중요
+        read_only: false
+      - filebrowser_data:/database
+      - filebrowser_config:/config
+
+    environment:
+      #- PUID=911
+      #- PGID=911
+      - TZ=Asia/Seoul
+    networks:
+      - proxy
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == pubuntu
+          #- node.role == worker
+      labels:
+        - "caddy=fb.facil.co.kr"
+        - "caddy.reverse_proxy={{upstreams 80}}"
+        - "caddy.tls.dns=cloudflare"
+        - "caddy.tls.ca=https://acme-v02.api.letsencrypt.org/directory"
+
+networks:
+  proxy:
+    external: true
+volumes:
+  filebrowser_data:
+  filebrowser_config:
