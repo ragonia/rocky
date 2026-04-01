@@ -5,13 +5,13 @@ services:
     environment:
       - url=https://www.argok.co.kr
       - database__client=mysql
-      - database__connection__host=mariadb_primary
+      - database__connection__host=db_mysql
       - database__connection__port=3306
       - database__connection__user=ragoni
       - database__connection__database=argok
       - TZ=Asia/Seoul
     secrets:
-      - maria_password
+      - mysql_password
     command: >
       sh -lc '
         export database__connection__password="$$(cat /run/secrets/maria_password)";
@@ -19,8 +19,8 @@ services:
         docker-entrypoint.sh node current/index.js
       '
     volumes:
-      - /docker/argok/content:/var/lib/ghost/content
-      - /docker/argok/config.production.json:/custom/config.production.json        
+      - /data/argok/content:/var/lib/ghost/content
+      - /data/argok/config.production.json:/custom/config.production.json        
     networks:
       - proxy
       - dbnet
@@ -30,7 +30,7 @@ services:
         condition: on-failure
       placement:
         constraints:
-          - node.role == manager
+          - node.albels.size == main
 
     labels:
       caddy: "www.argok.co.kr"
