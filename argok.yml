@@ -37,7 +37,7 @@ services:
       caddy.reverse_proxy: "{{upstreams 2368}}"
 
 secrets:
-  maria_password:
+  mysql_password:
     external: true
 
 networks:
