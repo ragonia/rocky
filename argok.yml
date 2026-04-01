@@ -14,7 +14,7 @@ services:
       - mysql_password
     command: >
       sh -lc '
-        export database__connection__password="$$(cat /run/secrets/maria_password)";
+        export database__connection__password="$$(cat /run/secrets/mysql_password)";
         cp /custom/config.production.json /var/lib/ghost/config.production.json;
         docker-entrypoint.sh node current/index.js
       '
