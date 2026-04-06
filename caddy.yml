@@ -20,7 +20,7 @@ services:
       placement:
         constraints:
           #- node.hostname == uman
-          - node.labels.size == main
+          - node.labels.role == main
       restart_policy:
         condition: on-failure
     labels:
@@ -45,7 +45,7 @@ services:
       placement:
         constraints:
           #- node.hostname == uman    # 추가!
-          - node.labels.size == main
+          - node.labels.role == main
     labels:
       caddy: "caddy.argok.co.kr"
       caddy.reverse_proxy: "{{upstreams 8000}}"
