@@ -5,7 +5,7 @@ services:
     image: ghost:latest
 
     environment:
-      url: https://picnictime.facil.co.kr
+      url: https://www.picnictime.co.kr
 
       database__client: mysql
       database__connection__host: db_mysql
@@ -40,38 +40,10 @@ services:
           - node.role == worker
 
       labels:
-        - "caddy=picnictime.facil.co.kr"
+        - "caddy=www.picnictime.co.kr"
         - "caddy.reverse_proxy={{upstreams 2368}}"
         - "caddy.tls.dns=cloudflare"
         - "caddy.tls.ca=https://acme-v02.api.letsencrypt.org/directory"
-
-  wordpicnic:
-    image: wordpress:latest
-    environment:
-      WORDPRESS_DB_HOST: db_mysql:3306
-      WORDPRESS_DB_USER: ragoni
-      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mysql_password
-      WORDPRESS_DB_NAME: wordpicnic
-    secrets:
-      - mysql_password
-    networks:
-      - proxy
-      - dbnet
-    deploy:
-      placement:
-        constraints:
-          - node.role == worker
-          # - node.hostname == 
-      labels:
-        - "traefik.enable=true"
-        - "caddy=wordpicnic.facil.co.kr"
-        - "caddy.reverse_proxy={{upstreams 80}}"
-        - "caddy.tls.dns=cloudflare"
-        - "caddy.tls.ca=https://acme-v02.api.letsencrypt.org/directory"
-
-    volumes:
-      - /docker/wordpicnic:/var/www/html
-      - /docker/word/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
       
 networks:
   proxy:
