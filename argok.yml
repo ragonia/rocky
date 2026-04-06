@@ -30,7 +30,7 @@ services:
         condition: on-failure
       placement:
         constraints:
-          - node.labels.size == main
+          - node.labels.role == main
 
     labels:
       caddy: "www.argok.co.kr"
