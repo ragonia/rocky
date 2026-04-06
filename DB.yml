@@ -24,7 +24,7 @@ services:
         constraints:
           #- node.role == worker
           #- node.hostname == rocky
-          - node.labels.role == db
+          - node.labels.db == main
       endpoint_mode: dnsrr
       restart_policy:
        condition: any
@@ -43,7 +43,7 @@ services:
     deploy:
       placement:
         constraints:
-          - node.labels.role == db
+          - node.labels.db == main
           #- node.hostname == rocky
           #- node.role == worker
     volumes:
@@ -69,7 +69,7 @@ services:
       placement:
         constraints:
           #- node.hostname == rocky
-          - node.labels.role == dev
+          - node.labels.db == repl
           
   postgres:
     image: tensorchord/pgvecto-rs:pg16-v0.2.0
@@ -90,7 +90,7 @@ services:
         constraints:
           #- node.hostname == pubuntu
           #- node.hostname == gram
-          - node.labels.role == db
+          - node.labels.db == main
     command: |
       bash -c '
       export PATH="/usr/lib/postgresql/16/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
@@ -114,7 +114,7 @@ services:
         condition: on-failure
       placement:
         constraints:
-          - node.labels.size == main
+          - node.labels.db == repl
           #- node.hostname == gram
           #- node.hostname == pubuntu
       labels:
