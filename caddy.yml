@@ -1,0 +1,67 @@
+version: "3.8"
+services:
+  caddy:
+    image: lucaslorentz/caddy-docker-proxy:ci-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      #- "2019:2019"  # Admin API 포트,caddy open
+    volumes:
+      - /data/caddy/data:/data
+      - /data/caddy/config:/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+    environment:
+      - TZ=Asia/Seoul
+      - CADDY_INGRESS_NETWORKS=proxy
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          #- node.hostname == uman
+          - node.labels.size == main
+      restart_policy:
+        condition: on-failure
+    labels:
+      caddy.admin: "0.0.0.0:2019"   # 컨테이너 내부에서 listen (외부 포트는 안 열었음)
+      
+      #caddy: "admin.argok.co.kr"
+      #caddy.reverse_proxy: "caddy:2019"
+      #caddy.basicauth: "/*"
+      #caddy.basicauth.user: "admin $2a$14$abc123....."
+      
+  caddy-ui:
+    image: qmcgaw/caddy-ui:latest
+    environment:
+      - CADDY_API_ENDPOINT=http://caddy:2019
+      - TZ=Asia/Seoul
+    networks:
+      - proxy
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          #- node.hostname == uman    # 추가!
+          - node.labels.size == main
+    labels:
+      caddy: "caddy.argok.co.kr"
+      caddy.reverse_proxy: "{{upstreams 8000}}"
+
+  whoami:
+    image: traefik/whoami
+    networks:
+      - proxy
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    labels:
+      caddy: "whoami.argok.co.kr"
+      caddy.reverse_proxy: "{{upstreams 80}}"
+
+networks:
+  proxy:
+    external: true

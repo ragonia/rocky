@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  cusdis:
+    image: djyde/cusdis
+    environment:
+      - USERNAME=admin
+      - PASSWORD=yourpassword
+      - JWT_SECRET=changeme
+      - DB_TYPE=sqlite
+      - DB_URL=file:/data/db.sqlite
+      - NEXTAUTH_URL=https://cusdis.facil.co.kr
+    volumes:
+      - /docker/cusdis/data:/data
+    networks:
+      - proxy
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=proxy"
+        - "traefik.http.routers.cusdis.rule=Host(`cusdis.facil.co.kr`)"
+        - "traefik.http.routers.cusdis.entrypoints=websecure"
+        - "traefik.http.routers.cusdis.tls.certResolver=cloudflare"
+        - "traefik.http.services.cusdis.loadbalancer.server.port=3000"
+        - "traefik.http.routers.cusdis-http.rule=Host(`cusdis.facil.co.kr`)"
+        - "traefik.http.routers.cusdis-http.entrypoints=web"
+        - "traefik.http.routers.cusdis-http.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+networks:
+  proxy:
+    external: true

@@ -1,0 +1,177 @@
+  version: "3.8"
+  
+  networks:
+    proxy:
+      external: true
+      name: proxy
+    immich:
+      external: true
+      name: immich
+  
+  secrets:
+    mysql_password:
+      external: true
+    immich_api_key:
+      external: true
+  
+  
+  services:
+    postgres:
+      image: tensorchord/pgvecto-rs:pg14-v0.2.0
+      networks:
+        immich:
+          aliases:
+            - postgres
+      volumes:
+        - /docker/immich/pgdata:/var/lib/postgresql/data
+      environment:
+        POSTGRES_USER: immich
+        POSTGRES_DB: immich
+        POSTGRES_PASSWORD_FILE: /run/secrets/mysql_password
+      secrets:
+        - mysql_password
+      deploy:
+        replicas: 1
+        placement:
+          constraints:
+            - node.hostname == gram
+        restart_policy:
+          condition: any
+          delay: 5s
+          max_attempts: 100
+        resources:
+          limits:
+            memory: 4G
+          reservations:
+            memory: 1G
+      command: |
+        bash -c '
+        if [ -d "$PGDATA/base" ] && [ ! -f "$PGDATA/PG_VERSION" ]; then
+          echo "FATAL: base exists but PG_VERSION missing (broken/mis-mounted volume)"
+          exit 1
+        fi
+  
+        export PATH="/usr/lib/postgresql/14/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+  
+        exec /usr/local/bin/docker-entrypoint.sh postgres -c shared_preload_libraries=vectors.so
+        '
+  
+    redis:
+      image: redis:7-alpine
+      command: ["redis-server", "--appendonly", "yes"]
+      networks:
+        immich:
+          aliases:
+            - redis
+      volumes:
+        - /docker/immich/redis:/data
+      deploy:
+        replicas: 1
+        placement:
+          constraints:
+            - node.hostname == gram
+        restart_policy:
+          condition: on-failure
+  
+    immich_server:
+      image: ghcr.io/immich-app/immich-server:v2.6.2
+      networks:
+        - proxy
+        - immich
+      environment:
+        TZ: Asia/Seoul
+        DB_HOSTNAME: postgres
+        REDIS_HOSTNAME: redis
+        DB_USERNAME: immich
+        DB_DATABASE_NAME: immich
+        DB_PASSWORD_FILE: /run/secrets/mysql_password
+        UPLOAD_LOCATION: /usr/src/app/upload
+        IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning:3003
+      secrets:
+        - mysql_password
+      volumes:
+        - /mnt/main/immich/upload:/usr/src/app/upload
+        - /docker/immich/upload:/data
+      deploy:
+        replicas: 1
+        placement:
+          constraints:
+            - node.hostname == gram
+        restart_policy:
+          condition: on-failure
+        resources:
+          limits:
+            cpus: "2"
+            memory: 2G
+          reservations:
+            cpus: "0.5"
+            memory: 512M   # 1G → 512M
+  
+    immich_microservices:
+      image: ghcr.io/immich-app/immich-server:v2.6.2
+      command: ["start.sh", "microservices"]
+      networks:
+        - immich
+      environment:
+        TZ: Asia/Seoul
+        DB_HOSTNAME: postgres
+        REDIS_HOSTNAME: redis
+        DB_USERNAME: immich
+        DB_DATABASE_NAME: immich
+        DB_PASSWORD_FILE: /run/secrets/mysql_password
+        UPLOAD_LOCATION: /usr/src/app/upload
+        IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning:3003
+      secrets:
+        - mysql_password
+      volumes:
+        - /mnt/main/immich/upload:/usr/src/app/upload
+        - /docker/immich/microservices:/data
+  
+      deploy:
+        replicas: 1
+        placement:
+          constraints:
+            - node.hostname == gram
+        restart_policy:
+          condition: on-failure
+        resources:
+          limits:
+            cpus: "2"
+            memory: 2G
+          reservations:
+            cpus: "0.5"
+            memory: 512M   # 1G → 512M
+  
+    immich_machine_learning:
+      image: ghcr.io/immich-app/immich-machine-learning:v2.6.2
+      networks:
+        immich:
+          aliases:
+            - immich-machine-learning
+      volumes:
+        - /mnt/main/immich/upload:/usr/src/app/upload
+        - /mnt/main/immich/model-cache:/cache
+      environment:
+        TZ: Asia/Seoul
+        # 모델 캐시 (기본 300초 → 1시간)
+        MACHINE_LEARNING_MODEL_TTL: 3600
+  
+        # thread tuning
+        MACHINE_LEARNING_WORKERS: 1
+        MACHINE_LEARNING_REQUEST_THREADS: 4
+  
+        # OpenVINO acceleration
+        MACHINE_LEARNING_DEVICE: openvino
+        OMP_NUM_THREADS: 4
+      deploy:
+        replicas: 1
+        placement:
+          constraints:
+            - node.hostname == gram
+        resources:
+          limits:
+            cpus: "2"
+            memory: 4G
+          reservations:
+            cpus: "0.5"
+            memory: 512M   # 2G → 512M

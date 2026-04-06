@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  jay-ghost:
+    #image: ghost:5.80.1
+    image: ghost:latest
+    environment:
+      url: https://jay.facil.co.kr
+
+      database__client: mysql
+      database__connection__host: db_mysql
+      database__connection__port: 3306
+      database__connection__user: ragoni
+      database__connection__database: jay
+
+    secrets:
+      - mysql_password
+
+    # ✅ secret 파일을 읽어 password 문자열로 주입
+    command: >
+      sh -lc '
+        export database__connection__password="$$(cat /run/secrets/mysql_password)";
+        cp /custom/config.production.json /var/lib/ghost/config.production.json;
+        docker-entrypoint.sh node current/index.js
+      '
+
+    volumes:
+      - /docker/jay/content:/var/lib/ghost/content
+      - /docker/jay/config.production.json:/custom/config.production.json
+
+    networks:
+      - proxy
+      - dbnet
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          #- node.hostname == gram
+          - node.role == worker
+
+      labels:
+        - "caddy=jay.facil.co.kr"
+        - "caddy.reverse_proxy={{upstreams 2368}}"
+        - "caddy.tls.dns=cloudflare"
+        - "caddy.tls.ca=https://acme-v02.api.letsencrypt.org/directory"
+
+
+
+networks:
+  proxy:
+    external: true
+  dbnet:
+    external: true
+
+secrets:
+  mysql_password:
+    external: true
